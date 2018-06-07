@@ -5,20 +5,20 @@ import { LinkContainer } from 'react-router-bootstrap';
 import { Grid, Row, Col, Form, FormGroup } from 'react-bootstrap';
 import { Button } from 'patternfly-react';
 import TooltipButton from 'react-bootstrap-tooltip-button';
+import OptionTooltip from '../../move_to_pf/OptionTooltip';
 import { notify } from '../../move_to_foreman/foreman_toast_notifications';
 import helpers from '../../move_to_foreman/common/helpers';
 import ModalProgressBar from '../../move_to_foreman/components/common/ModalProgressBar';
 import ManageManifestModal from './Manifest/';
 import SubscriptionsTable from './SubscriptionsTable';
 import Search from '../../components/Search/index';
-import api, { orgId } from '../../services/api';
-import { createSubscriptionParams } from './SubscriptionActions.js';
+import { orgId } from '../../services/api';
+
 import {
   BLOCKING_FOREMAN_TASK_TYPES,
   MANIFEST_TASKS_BULK_SEARCH_ID,
   BULK_TASK_SEARCH_INTERVAL,
 } from './SubscriptionConstants';
-
 
 class SubscriptionsPage extends Component {
   constructor(props) {
@@ -29,7 +29,7 @@ class SubscriptionsPage extends Component {
       disableDeleteButton: true,
       polledTask: null,
       showTaskModal: false,
-      searchQuery: '',
+      tableColumns: null,
     };
   }
 
@@ -73,6 +73,7 @@ class SubscriptionsPage extends Component {
 
     this.props.loadSetting('content_disconnected');
     this.props.loadSubscriptions();
+    this.props.loadColumns('Katello::subscriptions');
   }
 
   handleDoneTask(taskToPoll) {
@@ -109,11 +110,11 @@ class SubscriptionsPage extends Component {
   }
 
   render() {
-    const { tasks, subscriptions } = this.props;
+    const { tasks, subscriptions, settings } = this.props;
     const { disconnected } = subscriptions;
     const taskInProgress = tasks.length > 0;
     const disableManifestActions = taskInProgress || disconnected;
-
+    console.log(settings);
     let task = null;
 
     if (taskInProgress) {
@@ -139,10 +140,6 @@ class SubscriptionsPage extends Component {
       },
     });
 
-    const updateSearchQuery = (searchQuery) => {
-      this.setState({ searchQuery });
-    };
-
     const showManageManifestModal = () => {
       this.setState({ manifestModalOpen: true });
     };
@@ -165,11 +162,43 @@ class SubscriptionsPage extends Component {
     };
 
     const toggleDeleteButton = (rowsSelected) => {
+      console.log('toggle delete');
       this.setState({ disableDeleteButton: !rowsSelected });
     };
-
-    const csvParams = createSubscriptionParams({ search: this.state.searchQuery });
-
+    const options = [
+      {
+        key: 'name',
+        label: __('Name'),
+        value: true,
+      },
+      {
+        key: 'sku',
+        label: __('SKU'),
+        value: true,
+      },
+      {
+        key: 'contract',
+        label: __('Contract'),
+        value: false,
+      },
+      {
+        key: 'startDate',
+        label: __('Start Date'),
+        value: false,
+      },
+      // sku
+      // contract
+      // startDate
+      // endDate
+      // requiresVirt
+      // consumed
+      // entitlements
+    ];
+    const toolTipOnclose = (toolTipData) => {
+      // curl -k -u admin:changeme -H "Content-Type: application/json" -X POST -d '{"name":"Katello::Pool", "columns":["name", "entitlements"]}'   "https://localhost/api/v2/users/4/table_preferences"
+      const data = { columns: toolTipData };
+      this.props.updateColumns(data);
+    };
     return (
       <Grid bsClass="container-fluid">
         <Row>
@@ -180,11 +209,8 @@ class SubscriptionsPage extends Component {
               <Col sm={12}>
                 <Form className="toolbar-pf-actions">
                   <FormGroup className="toolbar-pf-filter">
-                    <Search
-                      onSearch={onSearch}
-                      getAutoCompleteParams={getAutoCompleteParams}
-                      updateSearchQuery={updateSearchQuery}
-                    />
+                    <Search onSearch={onSearch} getAutoCompleteParams={getAutoCompleteParams} />
+                    <OptionTooltip options={options} onClose={toolTipOnclose} />
                   </FormGroup>
 
                   <div className="toolbar-pf-action-right">
@@ -204,9 +230,7 @@ class SubscriptionsPage extends Component {
                         {__('Manage Manifest')}
                       </Button>
 
-                      <Button
-                        onClick={() => { api.open('/subscriptions.csv', csvParams); }}
-                      >
+                      <Button>
                         {__('Export CSV')}
                       </Button>
 
@@ -264,6 +288,9 @@ SubscriptionsPage.propTypes = {
   pollBulkSearch: PropTypes.func.isRequired,
   pollTaskUntilDone: PropTypes.func.isRequired,
   loadSetting: PropTypes.func.isRequired,
+  loadColumns: PropTypes.func.isRequired,
+  updateColumns: PropTypes.func.isRequired,
+  settings: PropTypes.shape({}).isRequired,
   tasks: PropTypes.arrayOf(PropTypes.shape({})),
   deleteSubscriptions: PropTypes.func.isRequired,
 };
