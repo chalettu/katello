@@ -147,8 +147,7 @@ class SubscriptionsTable extends Component {
   }
 
   render() {
-    const { subscriptions } = this.props;
-
+    const { subscriptions, tableColumns } = this.props;
     const inlineEditController = {
       isEditing: ({ rowData }) => (this.state.editing && rowData.available >= 0),
       hasChanged: ({ rowData }) => {
@@ -228,9 +227,8 @@ class SubscriptionsTable extends Component {
     if (subscriptions.results.length === 0 && subscriptions.searchIsActive) {
       bodyMessage = __('No subscriptions match your search criteria.');
     }
-
-    const columnsDefinition = columns(inlineEditController, selectionController);
-
+    const columnsDefinition = columns(inlineEditController, selectionController)
+      .filter(column => tableColumns.indexOf(column.property) > -1);
     return (
       <Spinner loading={subscriptions.loading} className="small-spacer">
         <ErrorAlerts
@@ -322,6 +320,7 @@ class SubscriptionsTable extends Component {
 }
 
 SubscriptionsTable.propTypes = {
+  tableColumns: PropTypes.arrayOf(PropTypes.string).isRequired,
   loadSubscriptions: PropTypes.func.isRequired,
   updateQuantity: PropTypes.func.isRequired,
   subscriptions: PropTypes.shape({

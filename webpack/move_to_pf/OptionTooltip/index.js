@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'patternfly-react';
+import './OptionTooltip.scss';
 
 class OptionTooltip extends Component {
   constructor(props) {
@@ -20,13 +21,13 @@ class OptionTooltip extends Component {
   }
   renderTooltip() {
     return (
-      <Popover id="optionTooltip">
+      <Popover id="optionTooltip" className="option-tooltip">
         <ul>
           {
             this.state.options.map((option, index) => (
               <li key={option.key}>
-                <input type="checkbox" checked={option.value} name={option.key} onChange={e => this.handleInputChange(e, index)} />
-                <label>{option.label}</label>
+                <input type="checkbox" checked={option.value} name={option.key} id={option.key} onChange={e => this.handleInputChange(e, index)} />
+                <span>{option.label}</span>
               </li>
             ))
           }
@@ -35,26 +36,25 @@ class OptionTooltip extends Component {
     );
   }
   render() {
-    const { onClose } = this.props;
-    const state = this.state;
-    const onCloseCB = function () {
-      onClose(state.options);
-    };
+    const { options } = this.state;
     const rootClose = true;
     const changeTooltip = () => {
-      console.log('test');
     };
+    const onClose = () => {
+      this.props.onClose(options);
+    };
+
     return (
       <OverlayTrigger
-                    overlay={this.renderTooltip()}
-                    placement="bottom"
-                    trigger={['click']}
-                    rootClose={rootClose}
-                    onEnter={changeTooltip}
-                    onExit={onCloseCB}
-                  >
-                    <i className="fa fa-columns"></i>
-                  </OverlayTrigger>
+        overlay={this.renderTooltip()}
+        placement="bottom"
+        trigger={['click']}
+        rootClose={rootClose}
+        onEnter={changeTooltip}
+        onExit={onClose}
+      >
+        <i className="fa fa-columns" />
+      </OverlayTrigger>
     );
   }
 }
@@ -62,8 +62,7 @@ class OptionTooltip extends Component {
 OptionTooltip.propTypes = {
   options: PropTypes.arrayOf(PropTypes.object).isRequired,
   onChange: PropTypes.func,
-  onClose:  PropTypes.func.isRequired
-
+  onClose: PropTypes.func.isRequired,
 };
 OptionTooltip.defaultProps = {
   onChange: () => {},

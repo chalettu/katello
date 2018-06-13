@@ -23,13 +23,62 @@ import {
 class SubscriptionsPage extends Component {
   constructor(props) {
     super(props);
+    const options = [
+      {
+        key: 'id',
+        label: __('Name'),
+        value: false,
+      },
+      {
+        key: 'product_id',
+        label: __('SKU'),
+        value: false,
+      },
+      {
+        key: 'contract_number',
+        label: __('Contract'),
+        value: false,
+      },
+      {
+        key: 'start_date',
+        label: __('Start Date'),
+        value: false,
+      },
+      {
+        key: 'end_date',
+        label: __('End Date'),
+        value: false,
+      },
+      {
+        key: 'virt_who',
+        label: __('Requires Virt-Who'),
+        value: false,
+      },
+      {
+        key: 'consumed',
+        label: __('Consumed'),
+        value: false,
+      },
+      {
+        key: 'quantity',
+        label: __('Entitlements'),
+        value: false,
+      },
+    ];
     this.state = {
       manifestModalOpen: false,
       subscriptionDeleteModalOpen: false,
       disableDeleteButton: true,
       polledTask: null,
       showTaskModal: false,
-      tableColumns: null,
+      tableColumns: options,
+      defaultColumns: [
+        'id',
+        'product_id',
+        'contract_number',
+        'start_date',
+        'end_date',
+      ],
     };
   }
 
@@ -73,7 +122,11 @@ class SubscriptionsPage extends Component {
 
     this.props.loadSetting('content_disconnected');
     this.props.loadSubscriptions();
-    this.props.loadColumns('Katello::subscriptions');
+    // redux function to retrieve columns
+    this.props.loadColumns('Katello::Subscriptions').then(() => {
+      // local function to format options for
+      this.renderTableColumnOptions();
+    });
   }
 
   handleDoneTask(taskToPoll) {
@@ -108,13 +161,31 @@ class SubscriptionsPage extends Component {
       });
     }
   }
-
+  // This method sets default columns for the table or the columns that come back from redux. 
+  renderTableColumnOptions() {
+    const { settings } = this.props;
+    let enabledColumns = [];
+    const { tableColumns } = this.state;
+    // if no columns are defined for this table then choose default columns
+    if (settings.tables.columns.length === 0) {
+      enabledColumns = this.state.defaultColumns;
+    } else {
+      enabledColumns = settings.tables.columns;
+    }
+    const configuredOptions = tableColumns.map((option) => {
+      const currentOption = option;
+      if (enabledColumns.indexOf(option.key) > -1) {
+        currentOption.value = true;
+      }
+      return currentOption;
+    });
+    this.setState({ tableColumns: configuredOptions });
+  }
   render() {
     const { tasks, subscriptions, settings } = this.props;
     const { disconnected } = subscriptions;
     const taskInProgress = tasks.length > 0;
     const disableManifestActions = taskInProgress || disconnected;
-    console.log(settings);
     let task = null;
 
     if (taskInProgress) {
@@ -139,7 +210,6 @@ class SubscriptionsPage extends Component {
         search,
       },
     });
-
     const showManageManifestModal = () => {
       this.setState({ manifestModalOpen: true });
     };
@@ -162,43 +232,25 @@ class SubscriptionsPage extends Component {
     };
 
     const toggleDeleteButton = (rowsSelected) => {
-      console.log('toggle delete');
       this.setState({ disableDeleteButton: !rowsSelected });
     };
-    const options = [
-      {
-        key: 'name',
-        label: __('Name'),
-        value: true,
-      },
-      {
-        key: 'sku',
-        label: __('SKU'),
-        value: true,
-      },
-      {
-        key: 'contract',
-        label: __('Contract'),
-        value: false,
-      },
-      {
-        key: 'startDate',
-        label: __('Start Date'),
-        value: false,
-      },
-      // sku
-      // contract
-      // startDate
-      // endDate
-      // requiresVirt
-      // consumed
-      // entitlements
-    ];
-    const toolTipOnclose = (toolTipData) => {
-      // curl -k -u admin:changeme -H "Content-Type: application/json" -X POST -d '{"name":"Katello::Pool", "columns":["name", "entitlements"]}'   "https://localhost/api/v2/users/4/table_preferences"
-      const data = { columns: toolTipData };
-      this.props.updateColumns(data);
+
+    const toolTipOnclose = (columns) => {
+      const enabledColumns = [];
+      columns.forEach((column) => {
+        if (column.value) {
+          enabledColumns.push(column.key);
+        }
+      });
+      if (!settings.tables.id) {
+        this.props.createColumns({ name: 'Katello::Subscriptions', columns: enabledColumns });
+      } else {
+        const options = { ...settings.tables };
+        options.columns = enabledColumns;
+        this.props.updateColumns(options);
+      }
     };
+    const columns = settings.tables.columns || this.state.defaultColumns;
     return (
       <Grid bsClass="container-fluid">
         <Row>
@@ -210,7 +262,7 @@ class SubscriptionsPage extends Component {
                 <Form className="toolbar-pf-actions">
                   <FormGroup className="toolbar-pf-filter">
                     <Search onSearch={onSearch} getAutoCompleteParams={getAutoCompleteParams} />
-                    <OptionTooltip options={options} onClose={toolTipOnclose} />
+                    <OptionTooltip options={this.state.tableColumns} onClose={toolTipOnclose} />
                   </FormGroup>
 
                   <div className="toolbar-pf-action-right">
@@ -261,6 +313,7 @@ class SubscriptionsPage extends Component {
             <div id="subscriptions-table" className="modal-container">
               <SubscriptionsTable
                 loadSubscriptions={this.props.loadSubscriptions}
+                tableColumns={columns}
                 updateQuantity={this.props.updateQuantity}
                 subscriptions={this.props.subscriptions}
                 subscriptionDeleteModalOpen={this.state.subscriptionDeleteModalOpen}
@@ -289,6 +342,7 @@ SubscriptionsPage.propTypes = {
   pollTaskUntilDone: PropTypes.func.isRequired,
   loadSetting: PropTypes.func.isRequired,
   loadColumns: PropTypes.func.isRequired,
+  createColumns: PropTypes.func.isRequired,
   updateColumns: PropTypes.func.isRequired,
   settings: PropTypes.shape({}).isRequired,
   tasks: PropTypes.arrayOf(PropTypes.shape({})),

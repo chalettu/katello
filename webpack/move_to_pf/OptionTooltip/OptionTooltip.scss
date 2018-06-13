@@ -1,0 +1,13 @@
+.option-tooltip {
+  ul {
+    list-style-type: none;
+    padding: 0;
+  }
+  .popover-content{
+    min-width: 120px;
+    max-width: 160px;
+  }
+  span {
+    margin-left: 8px;
+  }
+}
