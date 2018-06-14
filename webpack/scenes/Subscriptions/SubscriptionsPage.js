@@ -122,9 +122,7 @@ class SubscriptionsPage extends Component {
 
     this.props.loadSetting('content_disconnected');
     this.props.loadSubscriptions();
-    // redux function to retrieve columns
     this.props.loadColumns('Katello::Subscriptions').then(() => {
-      // local function to format options for
       this.renderTableColumnOptions();
     });
   }
@@ -262,9 +260,10 @@ class SubscriptionsPage extends Component {
                 <Form className="toolbar-pf-actions">
                   <FormGroup className="toolbar-pf-filter">
                     <Search onSearch={onSearch} getAutoCompleteParams={getAutoCompleteParams} />
-                    <OptionTooltip options={this.state.tableColumns} onClose={toolTipOnclose} />
                   </FormGroup>
-
+                  <div className="option-tooltip-container">
+                    <OptionTooltip options={this.state.tableColumns} icon="fa-columns" onClose={toolTipOnclose} />
+                  </div>
                   <div className="toolbar-pf-action-right">
                     <FormGroup>
                       <LinkContainer to="subscriptions/add" disabled={disableManifestActions}>
